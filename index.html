@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0f1220">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg">
+<title>Imposter</title>
+<style>
+:root{--bg:#0f1220;--panel:#1b2036;--text:#f2f4ff;--dim:#9aa3c7;--accent:#ff4d6d;--ok:#4dd6a4;--line:#2c3354;--on:#fff}
+[data-theme=ocean]{--bg:#06202e;--panel:#0d3347;--text:#eaf8ff;--dim:#8fb8cc;--accent:#14b8e6;--ok:#5eead4;--line:#17506b}
+[data-theme=forest]{--bg:#0e1a12;--panel:#17291d;--text:#eefaf0;--dim:#9bbfa4;--accent:#3fb950;--ok:#a3e635;--line:#25402d}
+[data-theme=sunset]{--bg:#1f1020;--panel:#33182f;--text:#fff1ea;--dim:#d1a3b0;--accent:#ff7a3d;--ok:#ffd166;--line:#52284a}
+[data-theme=grape]{--bg:#150f26;--panel:#241a40;--text:#f5f0ff;--dim:#b3a5d9;--accent:#a855f7;--ok:#f0abfc;--line:#3b2d66}
+[data-theme=mono]{--bg:#000;--panel:#161616;--text:#fff;--dim:#9a9a9a;--accent:#fff;--ok:#fff;--line:#2b2b2b;--on:#000}
+[data-theme=light]{--bg:#f4f5fb;--panel:#fff;--text:#1a1d2e;--dim:#6b7194;--accent:#e63e5c;--ok:#12a77a;--line:#d9dcee}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);transition:background .4s,color .4s;color:var(--text);font:17px/1.4 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;-webkit-user-select:none;user-select:none}
+#app{max-width:480px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom));min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{margin:.2em 0;font-size:2rem}h2{margin:1.2em 0 .4em;font-size:1rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.dim{color:var(--dim)}
+.row{display:flex;gap:8px;margin-bottom:8px}
+input[type=text],input:not([type]),select{flex:1;width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;-webkit-user-select:text;user-select:text}
+input[type=range]{width:100%;accent-color:var(--accent)}
+button{font:inherit;color:var(--text);border:0;border-radius:14px;padding:14px;cursor:pointer;transition:transform .12s,filter .2s,opacity .2s,background .3s}
+button:active:not(:disabled){transform:scale(.96)}
+button:disabled{opacity:.35}
+.big{width:100%;background:var(--accent);color:var(--on);font-weight:700;font-size:1.1rem;margin-top:16px;box-shadow:0 8px 24px -8px var(--accent)}
+button.big:disabled{box-shadow:none}
+.ghost{background:var(--panel)}
+.link{background:none;color:var(--dim);font-size:.85rem;width:100%;margin-top:8px}
+.cats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cats label{background:var(--panel);padding:10px;border-radius:10px;font-size:.9rem;display:flex;gap:8px;align-items:center}
+.center{min-height:85vh;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.name{font-size:2.6rem;word-break:break-word}
+.card{background:var(--panel);border-radius:20px;padding:36px 16px;margin:16px 0;border:2px solid var(--ok)}
+.card.imp,h1.imp{color:var(--accent);border-color:var(--accent)}
+.card.imp{color:#ff3b3b;border-color:#ff3b3b;background:linear-gradient(160deg,#4a0f14,#2a070a);box-shadow:0 0 22px -4px #ff3b3b}
+h1.imp{border:0}
+.timer{font-size:2.4rem;font-variant-numeric:tabular-nums;margin:12px 0;color:var(--ok)}
+.tog{display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:14px;border-radius:12px;margin-bottom:8px}
+p{margin:.5em 0}
+ul.how{list-style:none;padding:0;margin:12px 0 0}
+ul.how li{background:var(--panel);border-radius:14px;padding:14px 14px 14px 44px;margin-bottom:10px;position:relative;animation:up .5s ease both;animation-delay:calc(var(--i)*80ms)}
+ul.how li::before{content:"";position:absolute;left:16px;top:21px;width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+/* effects */
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes flip{from{opacity:0;transform:perspective(600px) rotateY(-70deg) scale(.9)}to{opacity:1;transform:none}}
+@keyframes pop{0%{opacity:0;transform:scale(.4)}70%{transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+@keyframes glow{50%{box-shadow:0 0 28px -2px var(--accent)}}
+.center>*{animation:up .45s ease backwards}
+.center>*:nth-child(2){animation-delay:.08s}.center>*:nth-child(3){animation-delay:.16s}.center>*:nth-child(4){animation-delay:.24s}.center>*:nth-child(5){animation-delay:.32s}
+.center>.card{animation:flip .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes redglow{50%{box-shadow:0 0 38px 0 #ff3b3b}}
+.card.imp{animation:flip .55s cubic-bezier(.2,.8,.2,1) both,redglow 2s .6s infinite}
+h1.imp{animation:pop .6s .1s cubic-bezier(.2,.8,.2,1) both}
+.timer.low{color:var(--accent);animation:glow 1s infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// "word:hint" pairs. No people, no niche items. Movies are big hits from ~2006 on.
+const RAW = {
+'Everyday Objects':"Toothbrush:Bathroom,Umbrella:Rain,Scissors:Cut,Backpack:School,Key:Lock,Pillow:Sleep,Mirror:Reflection,Clock:Time,Wallet:Money,Headphones:Music,Candle:Flame,Chair:Sit,Lamp:Light,Bicycle:Pedals,Glasses:Vision,Broom:Sweep,Towel:Dry,Spoon:Soup,Remote:Channels,Charger:Battery,Notebook:Writing,Pen:Ink,Bottle:Water,Hammer:Nails,Ladder:Climb,Blanket:Warm,Suitcase:Travel,Camera:Photos,Calculator:Math,Stapler:Paper,Tape:Sticky,Fork:Dinner,Plate:Dish,Soap:Clean,Comb:Hair",
+'Food & Drinks':"Pizza:Italian,Burger:Bun,Sushi:Japan,Taco:Mexican,Pasta:Noodles,Apple:Orchard,Banana:Yellow,Cheese:Dairy,Chocolate:Sweet,Ice Cream:Cold,Popcorn:Movies,Pancakes:Syrup,Coffee:Caffeine,Tea:Leaves,Orange Juice:Breakfast,Lemonade:Sour,Milkshake:Straw,Sandwich:Bread,Fries:Salty,Hot Dog:Ballpark,Cereal:Milk,Eggs:Breakfast,Rice:Grain,Soup:Bowl,Salad:Greens,Cookie:Baked,Donut:Hole,Watermelon:Summer,Strawberry:Red,Grapes:Vine,Bacon:Sizzle,Soda:Fizzy,Honey:Bees,Cake:Birthday,Peanut Butter:Spread",
+'Animals':"Dog:Loyal,Cat:Purr,Elephant:Trunk,Lion:Mane,Giraffe:Tall,Penguin:Ice,Dolphin:Ocean,Shark:Fin,Monkey:Climb,Kangaroo:Pouch,Panda:Bamboo,Owl:Night,Eagle:Soar,Snake:Slither,Frog:Pond,Butterfly:Wings,Bee:Buzz,Horse:Gallop,Cow:Farm,Pig:Mud,Chicken:Coop,Rabbit:Hop,Turtle:Shell,Bear:Hibernate,Wolf:Howl,Fox:Sly,Zebra:Stripes,Crocodile:Swamp,Octopus:Tentacles,Whale:Giant,Camel:Desert,Duck:Quack,Spider:Web,Tiger:Jungle,Hamster:Wheel",
+'Nature & Plants':"Tree:Leaves,Rose:Thorns,Sunflower:Tall,Cactus:Prickly,Mountain:Peak,River:Flow,Ocean:Waves,Beach:Sand,Volcano:Lava,Rainbow:Colors,Cloud:Sky,Moon:Night,Sun:Hot,Star:Twinkle,Snow:Winter,Rain:Wet,Lightning:Flash,Forest:Woods,Waterfall:Cliff,Island:Surrounded,Grass:Lawn,Mushroom:Fungi,Palm Tree:Tropical,Pine Tree:Evergreen,Oak:Acorn,Bamboo:Fast-growing,Lake:Still,Desert:Dunes,Cave:Dark,Tornado:Spin,Fog:Mist,Seashell:Shore,Tulip:Spring,Cliff:Edge,Leaf:Autumn",
+'Brands & Logos':"Nike:Swoosh,Apple:Tech,Google:Search,McDonald's:Arches,Coca-Cola:Red,Pepsi:Rival,Amazon:Packages,Netflix:Streaming,YouTube:Videos,Starbucks:Mermaid,Adidas:Stripes,Disney:Castle,LEGO:Bricks,IKEA:Furniture,Samsung:Galaxy,Toyota:Cars,Tesla:Electric,Spotify:Playlists,Instagram:Filters,TikTok:Dances,Facebook:Friends,Microsoft:Windows,Nintendo:Console,PlayStation:Controller,Xbox:Green,Pizza Hut:Delivery,Subway:Footlong,KFC:Colonel,Burger King:Crown,Walmart:Superstore,Target:Bullseye,Nutella:Hazelnut,Oreo:Twist,Pringles:Tube,Uber:Rides,Snapchat:Ghost",
+'Colors':"Red:Stop,Blue:Sky,Green:Grass,Yellow:Sun,Orange:Fruit,Purple:Royal,Pink:Flamingo,Black:Dark,White:Snow,Brown:Chocolate,Gray:Cloudy,Gold:Medal,Silver:Shiny,Turquoise:Tropical,Maroon:Deep,Navy:Sailor,Beige:Neutral,Lime:Bright,Teal:Blue-green,Lavender:Soft,Magenta:Vivid,Cyan:Printer,Indigo:Rainbow,Violet:Flower,Tan:Beach,Coral:Reef,Peach:Soft,Mint:Fresh,Crimson:Blood,Olive:Branch,Amber:Traffic,Ivory:Tusk,Bronze:Third,Charcoal:Grill,Burgundy:Wine",
+'Shapes':"Circle:Round,Square:Four,Triangle:Three,Rectangle:Door,Oval:Egg,Star:Five points,Heart:Love,Diamond:Cards,Pentagon:Five,Hexagon:Honeycomb,Octagon:Sign,Cube:Dice,Sphere:Ball,Cone:Traffic,Cylinder:Can,Pyramid:Egypt,Crescent:Moon,Spiral:Twist,Arrow:Direction,Cross:Plus,Rhombus:Slanted,Trapezoid:Parallel,Prism:Rainbow,Ring:Finger,Zigzag:Lightning,Wave:Curve,Semicircle:Half,Parallelogram:Opposite sides,Kite:Sky,Teardrop:Drip,Line:Straight,Dot:Tiny,Torus:Donut,Ellipse:Orbit,Arch:Bridge",
+'Countries':"USA:Stars,Canada:Maple,Mexico:Sombrero,Brazil:Carnival,Argentina:Tango,UK:Tea,France:Baguette,Germany:Beer,Italy:Boot,Spain:Siesta,Portugal:Atlantic,Egypt:Pyramids,India:Spices,China:Wall,Japan:Samurai,South Korea:K-pop,Australia:Outback,New Zealand:Kiwis,Russia:Cold,Turkey:Bazaar,Greece:Olives,Sweden:Meatballs,Norway:Fjords,Switzerland:Alps,Netherlands:Tulips,Ireland:Green,Thailand:Elephants,Vietnam:Motorbikes,Indonesia:Islands,Philippines:Archipelago,South Africa:Safari,Kenya:Marathon,Morocco:Souk,Peru:Llamas,Colombia:Coffee,Jamaica:Reggae,Cuba:Cigars,Iceland:Volcanic",
+'Cities':"New York:Skyscrapers,Los Angeles:Hollywood,Chicago:Windy,Las Vegas:Casinos,Miami:Beach,San Francisco:Bridge,Paris:Romance,London:Fog,Rome:Ancient,Venice:Canals,Barcelona:Tapas,Madrid:Plaza,Berlin:Wall,Amsterdam:Bikes,Vienna:Waltz,Prague:Castles,Istanbul:Straddles,Athens:Olympics,Cairo:Nile,Dubai:Tallest,Mumbai:Bollywood,Beijing:Forbidden,Shanghai:Skyline,Tokyo:Neon,Seoul:Gangnam,Bangkok:Street food,Singapore:Clean,Sydney:Opera,Melbourne:Coffee,Toronto:Maple,Vancouver:Mountains,Mexico City:Altitude,Rio de Janeiro:Christ,Buenos Aires:Steak,Moscow:Red Square",
+'Emotions':"Happy:Smile,Sad:Tears,Angry:Fire,Scared:Shiver,Excited:Bouncing,Nervous:Butterflies,Surprised:Gasp,Jealous:Green,Proud:Chest,Embarrassed:Blush,Lonely:Alone,Bored:Yawn,Confused:Question,Grateful:Thanks,Hopeful:Wish,Anxious:Worry,Calm:Peaceful,Disgusted:Gross,Guilty:Regret,Curious:Cat,Annoyed:Sigh,Love:Heart,Joy:Laughter,Shy:Quiet,Tired:Sleepy,Stressed:Deadlines,Relieved:Exhale,Silly:Goofy,Brave:Courage,Homesick:Miss,Cheerful:Sunny,Frustrated:Stuck,Amazed:Wow,Optimistic:Bright side,Grumpy:Mood",
+'Activities':"Swimming:Pool,Running:Marathon,Cooking:Kitchen,Dancing:Rhythm,Singing:Karaoke,Camping:Tent,Fishing:Patience,Hiking:Trail,Reading:Pages,Painting:Canvas,Shopping:Mall,Gaming:Controller,Skiing:Slopes,Surfing:Waves,Biking:Helmet,Yoga:Stretch,Gardening:Soil,Bowling:Pins,Skateboarding:Tricks,Photography:Lens,Baking:Oven,Traveling:Passport,Meditating:Quiet,Playing guitar:Strings,Basketball:Hoop,Soccer:Goal,Tennis:Racket,Golf:Course,Boxing:Ring,Sleeping:Dreams,Birthday party:Balloons,Picnic:Blanket,Road trip:Snacks,Barbecue:Grill,Ice skating:Rink,Rock climbing:Harness",
+'Movies':"Avatar:Blue,Frozen:Ice,Inception:Dreams,Interstellar:Space,The Dark Knight:Gotham,Avengers:Marvel,Black Panther:Marvel,Spider-Man:Hero,Iron Man:Armor,Joker:Clown,Barbie:Pink,Oppenheimer:Bomb,Top Gun:Jets,Jurassic World:Park,Finding Dory:Fish,Inside Out:Feelings,Up:Balloons,Coco:Skeletons,Moana:Ocean,Encanto:Family,Minions:Yellow,Despicable Me:Villain,The Hunger Games:Arena,Twilight:Vampires,Zootopia:Animals,Wonka:Chocolate,Deadpool:Mercenary,Dune:Desert,The Lion King:Pride,Aladdin:Lamp,Fast and Furious:Cars,Mission Impossible:Spy,John Wick:Assassin,Gravity:Astronaut,WALL-E:Robot,Ratatouille:Chef,Kung Fu Panda:Martial arts,How to Train Your Dragon:Viking,Incredibles 2:Family"
+};
+const WORDS = Object.fromEntries(Object.entries(RAW).map(([k, v]) => [k, v.split(',').map(p => p.split(':').map(s => s.trim()))]));
+const CATS = Object.keys(WORDS);
+const DEF = { names: ['Player 1', 'Player 2', 'Player 3', 'Player 4'], imps: 1, cats: CATS, time: 0, sound: true, vibe: true, vol: .6, theme: 'midnight' };
+
+const $ = s => document.querySelector(s), app = $('#app');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const rand = n => Math.floor(Math.random() * n);
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+let S, G = {}, tick, ac;
+
+function load() { try { return { ...structuredClone(DEF), ...JSON.parse(localStorage.imposter) }; } catch { return structuredClone(DEF); } }
+const THEMES = { midnight: 'Midnight', ocean: 'Ocean', forest: 'Forest', sunset: 'Sunset', grape: 'Grape', mono: 'Black & White', light: 'Light' };
+function save() { try { localStorage.imposter = JSON.stringify(S); } catch { } }
+S = load();
+function applyTheme() {
+  document.documentElement.dataset.theme = S.theme;
+  const m = $('meta[name=theme-color]'); if (m) m.content = getComputedStyle(document.body).backgroundColor;
+}
+applyTheme();
+
+// ---- sound / haptics (WebAudio, no files; AudioContext must be made inside a tap)
+function ensureAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch { } }
+// soft envelope (no clicks); everything scales with S.vol, master capped low so it stays gentle
+function tone(f, d, { type = 'sine', vol = 1, slide = 0, delay = 0 } = {}) {
+  if (!S.sound || !ac) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + d);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol * S.vol * .35, t + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .02);
+}
+function noise(d, f0, f1, vol = 1, delay = 0) { // filtered noise sweep = whoosh
+  if (!S.sound || !ac) return;
+  const t = ac.currentTime + delay, n = ac.sampleRate * d | 0, buf = ac.createBuffer(1, n, ac.sampleRate), x = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1;
+  const src = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+  src.buffer = buf; fl.type = 'bandpass'; fl.Q.value = 1.2;
+  fl.frequency.setValueAtTime(f0, t); fl.frequency.exponentialRampToValueAtTime(f1, t + d);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol * S.vol * .35, t + d * .6);
+  g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  src.connect(fl); fl.connect(g); g.connect(ac.destination); src.start(t);
+}
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880];
+const bell = (f, delay = 0, len = 1) => { tone(f, .9 * len, { vol: .8, delay }); tone(f * 2.76, .5 * len, { vol: .22, delay }); };
+let tapT; // a named sound cancels the pending generic tap blip
+const named = fn => (...a) => { clearTimeout(tapT); fn(...a); };
+const sfx = {
+  tap: () => tone(1200, .04, { vol: .5 }),
+  reveal: named(() => { noise(.3, 300, 3000, 2.2); bell(PENTA[rand(PENTA.length)], .22); }), // pitch varies; same for imposter and crew
+  hide: named(() => { tone(660, .12, { vol: .6 }); tone(494, .18, { vol: .6, delay: .1 }); }),
+  start: named(() => [523.25, 659.25, 783.99].forEach((f, i) => tone(f, .25, { vol: .7, delay: i * .1 }))),
+  tick: named(() => tone(900, .03, { type: 'square', vol: .3 })),
+  ding: named(() => bell(1320, 0, 1.4)),
+  final: named(() => { noise(.9, 200, 2500, 2.4); tone(110, .5, { type: 'triangle', vol: 1.4, slide: 55, delay: .9 }); })
+};
+document.addEventListener('click', e => { if (e.target.closest('button')) { ensureAudio(); tapT = setTimeout(sfx.tap, 0); } }, true);
+function buzz(p) { if (S.vibe && navigator.vibrate) navigator.vibrate(p); } // ponytail: Android only, iOS ignores it
+
+// ---- game logic
+function deal(names, k, pool) {
+  const [word, hint] = pool[rand(pool.length)];
+  const imps = new Set(shuffle(names.map((_, i) => i)).slice(0, k));
+  return { names, word, hint, imps, starter: rand(names.length), i: 0 };
+}
+{ const t = deal(['a', 'b', 'c'], 2, [['w', 'h']]); console.assert(t.imps.size === 2 && t.starter < 3 && t.word === 'w', 'deal broken'); }
+
+// ---- screens
+function setup() {
+  clearInterval(tick);
+  const n = S.names.length, max = n - 1;
+  S.imps = Math.min(Math.max(1, S.imps), max);
+  app.innerHTML = `
+  <header><h1>Imposter</h1><button class="ghost" onclick="settings()" aria-label="Settings">⚙</button></header>
+  <h2>Players (${n})</h2>
+  ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
+  <button class="ghost" style="width:100%" onclick="add()" ${n >= 12 ? 'disabled' : ''}>+ Add player</button>
+  <h2>Imposters: <b id="ic">${S.imps}</b></h2>
+  <input type="range" min="1" max="${max}" value="${S.imps}" oninput="S.imps=+this.value;$('#ic').textContent=this.value">
+  <h2>Timer</h2>
+  <select onchange="S.time=+this.value">${[[0, 'Off'], [60, '1 min'], [120, '2 min'], [180, '3 min'], [300, '5 min']].map(([v, l]) => `<option value="${v}" ${S.time === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+  <h2>Categories</h2>
+  <div class="cats">${CATS.map((c, i) => `<label><input type="checkbox" ${S.cats.includes(c) ? 'checked' : ''} onchange="tog(${i},this.checked)">${esc(c)}</label>`).join('')}</div>
+  <button class="big" onclick="start()">Start Game</button>
+  <button class="link" onclick="howto()">How to Play</button>`;
+}
+function add() { S.names.push(`Player ${S.names.length + 1}`); setup(); }
+function rm(i) { S.names.splice(i, 1); setup(); }
+function tog(i, on) { const c = CATS[i]; S.cats = on ? [...S.cats, c] : S.cats.filter(x => x !== c); }
+
+function start() {
+  const cats = S.cats.filter(c => WORDS[c]);
+  if (!cats.length) return alert('Pick at least one category.');
+  save(); ensureAudio();
+  const names = S.names.map((x, i) => x.trim() || `Player ${i + 1}`);
+  G = deal(names, S.imps, cats.flatMap(c => WORDS[c]));
+  pass();
+}
+
+// Strictly pass -> card -> pass -> card. The word only exists in the DOM during one person's card screen.
+function pass() {
+  if (G.i >= G.names.length) return started();
+  const n = esc(G.names[G.i]);
+  app.innerHTML = `<div class="center"><p class="dim">Pass the phone to</p><h1 class="name">${n}</h1><p class="dim">Only ${n} looks. Everyone else, look away.</p><button class="big" onclick="show()">I'm ${n}, show my card</button></div>`;
+}
+function show() {
+  ensureAudio(); sfx.reveal(); buzz(200);
+  const imp = G.imps.has(G.i);
+  app.innerHTML = `<div class="center"><p class="dim">${esc(G.names[G.i])}, your card</p>
+  <div class="card ${imp ? 'imp' : ''}">${imp ? `<h1>IMPOSTER</h1><p>Your hint: <b>${esc(G.hint)}</b></p>` : `<p class="dim">The word is</p><h1>${esc(G.word)}</h1>`}</div>
+  <button class="big" id="hb" disabled onclick="hide()">Hide and pass</button></div>`;
+  setTimeout(() => { const b = $('#hb'); if (b) b.disabled = false; }, 1200); // a double-tap can't skip the card unseen
+}
+function hide() { G.i++; if (G.i < G.names.length) sfx.hide(); pass(); }
+
+function started() {
+  sfx.start();
+  const end = S.time ? Date.now() + S.time * 1000 : 0;
+  app.innerHTML = `<div class="center"><h1>Game started</h1><p>Time to talk and catch the imposter. <b>${esc(G.names[G.starter])}</b> starts the conversation!</p>
+  ${end ? '<div id="t" class="timer"></div>' : ''}
+  <button class="big" onclick="reveal()">Reveal Imposter and Word</button>
+  <button class="link" onclick="setup()">New Game</button></div>`;
+  if (!end) return;
+  let lastTick;
+  const f = () => {
+    const l = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    $('#t').classList.toggle('low', l > 0 && l <= 10);
+    $('#t').textContent = l ? `${Math.floor(l / 60)}:${String(l % 60).padStart(2, '0')}` : "Time's up, vote now!";
+    if (l && l <= 10 && l !== lastTick) { lastTick = l; sfx.tick(); }
+    if (!l) { clearInterval(tick); sfx.ding(); buzz([300, 100, 300, 100, 300]); }
+  };
+  f(); tick = setInterval(f, 250);
+}
+function reveal() {
+  sfx.final();
+  clearInterval(tick);
+  const im = [...G.imps].map(i => esc(G.names[i]));
+  app.innerHTML = `<div class="center"><p class="dim">${im.length > 1 ? 'The imposters were' : 'The imposter was'}</p><h1 class="imp">${im.join(', ')}</h1>
+  <p class="dim">The word was</p><h1>${esc(G.word)}</h1><p class="dim">Imposter hint: ${esc(G.hint)}</p>
+  <button class="big" onclick="setup()">New Game</button></div>`;
+}
+
+function howto() {
+  app.innerHTML = `<header><h1>How to Play</h1></header>
+  <ul class="how">${[
+    'Gather your friends and pass the phone around.',
+    'Each player taps to see their secret word, then hides it and passes the phone on.',
+    'One person sees "IMPOSTER" and a hint word instead.',
+    'One by one, say a word related to the secret word.',
+    'The imposter fakes it and tries to blend in without knowing the word.',
+    'Keep giving clues and talking until someone thinks they have figured it out.',
+    'Vote for who you think the imposter is, then tap to reveal the truth.'
+  ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
+  <button class="big" onclick="setup()">Back</button>`;
+}
+function settings() {
+  const t = (k, label) => `<div class="tog"><span>${label}</span><input type="checkbox" ${S[k] ? 'checked' : ''} onchange="S.${k}=this.checked;save()"></div>`;
+  app.innerHTML = `<header><h1>Settings</h1></header>
+  <h2>Theme</h2><select onchange="S.theme=this.value;applyTheme();save()">${Object.entries(THEMES).map(([k, l]) => `<option value="${k}" ${S.theme === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+  <h2>Feedback</h2>${t('sound', 'Sound effects')}${t('vibe', 'Vibration (Android only)')}
+  <h2>Volume</h2><input type="range" min="0.1" max="1" step="0.05" value="${S.vol}" oninput="S.vol=+this.value" onchange="save();sfx.tap()">
+  <button class="ghost" style="width:100%;margin-top:8px" onclick="if(confirm('Reset names and settings?')){S=structuredClone(DEF);applyTheme();save();setup()}">Reset everything</button>
+  <button class="big" onclick="save();setup()">Back</button>`;
+}
+
+// block the browser Back button so nobody can navigate to a previous card
+history.pushState(null, ''); onpopstate = () => history.pushState(null, '');
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
+setup();
+</script>
+</body>
+</html>
