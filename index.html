@@ -83,7 +83,7 @@ const RAW = {
 };
 const WORDS = Object.fromEntries(Object.entries(RAW).map(([k, v]) => [k, v.split(',').map(p => p.split(':').map(s => s.trim()))]));
 const CATS = Object.keys(WORDS);
-const DEF = { names: ['Player 1', 'Player 2', 'Player 3', 'Player 4'], imps: 1, cats: CATS, time: 0, sound: true, vibe: true, vol: .6, theme: 'midnight' };
+const DEF = { names: ['Player 1', 'Player 2', 'Player 3', 'Player 4'], imps: 1, cats: CATS, time: 0, sound: true, vibe: true, vol: .6, theme: 'midnight', mode: 'classic' };
 
 const $ = s => document.querySelector(s), app = $('#app');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -158,6 +158,8 @@ function setup() {
   <h2>Players (${n})</h2>
   ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
   <button class="ghost" style="width:100%" onclick="add()" ${n >= 12 ? 'disabled' : ''}>+ Add player</button>
+  <h2>Mode</h2>
+  <select onchange="S.mode=this.value">${[['classic', 'Classic (imposter gets a hint)'], ['gesture', 'Gesture (imposter has a different word)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
   <h2>Imposters: <b id="ic">${S.imps}</b></h2>
   <input type="range" min="1" max="${max}" value="${S.imps}" oninput="S.imps=+this.value;$('#ic').textContent=this.value">
   <h2>Timer</h2>
@@ -176,7 +178,10 @@ function start() {
   if (!cats.length) return alert('Pick at least one category.');
   save(); ensureAudio();
   const names = S.names.map((x, i) => x.trim() || `Player ${i + 1}`);
-  G = deal(names, S.imps, cats.flatMap(c => WORDS[c]));
+  const cat = cats[rand(cats.length)], pool = WORDS[cat];
+  G = deal(names, S.imps, pool); G.mode = S.mode;
+  // gesture mode: imposter gets a different word from the same category and is never told
+  if (S.mode === 'gesture') G.word2 = pool.filter(w => w[0] !== G.word)[rand(pool.length - 1)][0];
   pass();
 }
 
@@ -188,9 +193,10 @@ function pass() {
 }
 function show() {
   ensureAudio(); sfx.reveal(); buzz(200);
-  const imp = G.imps.has(G.i);
+  const g = G.mode === 'gesture', imp = G.imps.has(G.i) && !g; // in gesture mode the imposter's card must look like everyone else's
+  const w = G.imps.has(G.i) && g ? G.word2 : G.word;
   app.innerHTML = `<div class="center"><p class="dim">${esc(G.names[G.i])}, your card</p>
-  <div class="card ${imp ? 'imp' : ''}">${imp ? `<h1>IMPOSTER</h1><p>Your hint: <b>${esc(G.hint)}</b></p>` : `<p class="dim">The word is</p><h1>${esc(G.word)}</h1>`}</div>
+  <div class="card ${imp ? 'imp' : ''}">${imp ? `<h1>IMPOSTER</h1><p>Your hint: <b>${esc(G.hint)}</b></p>` : `<p class="dim">The word is</p><h1>${esc(w)}</h1>`}</div>
   <button class="big" id="hb" disabled onclick="hide()">Hide and pass</button></div>`;
   setTimeout(() => { const b = $('#hb'); if (b) b.disabled = false; }, 1200); // a double-tap can't skip the card unseen
 }
@@ -219,7 +225,7 @@ function reveal() {
   clearInterval(tick);
   const im = [...G.imps].map(i => esc(G.names[i]));
   app.innerHTML = `<div class="center"><p class="dim">${im.length > 1 ? 'The imposters were' : 'The imposter was'}</p><h1 class="imp">${im.join(', ')}</h1>
-  <p class="dim">The word was</p><h1>${esc(G.word)}</h1><p class="dim">Imposter hint: ${esc(G.hint)}</p>
+  <p class="dim">The word was</p><h1>${esc(G.word)}</h1>${G.mode === 'gesture' ? `<p class="dim">The imposter's word was <b>${esc(G.word2)}</b></p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`}
   <button class="big" onclick="setup()">New Game</button></div>`;
 }
 
@@ -233,6 +239,13 @@ function howto() {
     'The imposter fakes it and tries to blend in without knowing the word.',
     'Keep giving clues and talking until someone thinks they have figured it out.',
     'Vote for who you think the imposter is, then tap to reveal the truth.'
+  ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
+  <h2>Gesture mode</h2>
+  <ul class="how">${[
+    'Everyone sees a word, and it looks the same for all players.',
+    'The imposter gets a different word from the same category, and does not know it.',
+    'Give clues and watch who does not quite fit.',
+    'Vote for the imposter. The reveal shows both words.'
   ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
   <button class="big" onclick="setup()">Back</button>`;
 }
