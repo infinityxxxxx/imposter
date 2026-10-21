@@ -164,7 +164,7 @@ function setup() {
   ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
   <button class="ghost" style="width:100%" onclick="add()" ${n >= 12 ? 'disabled' : ''}>+ Add player</button>
   <h2>Mode</h2>
-  <select onchange="S.mode=this.value;setup()">${[['classic', 'Classic (imposter gets a hint)'], ['jester', 'Jester (hidden imposter word + a Jester)'], ['question', 'Question (everyone answers a question)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+  <select onchange="S.mode=this.value;setup()">${[['classic', 'Classic (imposter gets a hint)'], ['jester', 'Jester (classic + a Jester who wants to be voted out)'], ['different', 'Different Word (imposter has a different word)'], ['question', 'Question (everyone answers a question)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
   <h2>Imposters: <b id="ic">${S.imps}</b></h2>
   <input type="range" min="1" max="${max}" value="${S.imps}" oninput="S.imps=+this.value;$('#ic').textContent=this.value">
   <h2>Timer</h2>
@@ -189,9 +189,9 @@ function start() {
   } else {
     const pool = WORDS[cats[rand(cats.length)]];
     G = deal(names, S.imps, pool);
-    // jester mode: imposter gets a different word from the same category and is never told
+    // different-word mode: imposter gets another word from the same category and is never told
+    if (S.mode === 'different') G.word2 = pool.filter(w => w[0] !== G.word)[rand(pool.length - 1)][0];
     if (S.mode === 'jester') {
-      G.word2 = pool.filter(w => w[0] !== G.word)[rand(pool.length - 1)][0];
       const crew = names.map((_, i) => i).filter(i => !G.imps.has(i)); // the Jester has the crew's word but wants to be voted out
       G.jester = crew[rand(crew.length)];
     }
@@ -206,7 +206,7 @@ function pass() {
 }
 function show() {
   ensureAudio(); sfx.reveal(); buzz(200);
-  const twist = G.mode !== 'classic', q = G.mode === 'question'; // in jester/question mode the imposter's card must look like everyone else's
+  const twist = G.mode === 'different' || G.mode === 'question', q = G.mode === 'question'; // in different-word/question mode the imposter's card must look like everyone else's
   const imp = G.imps.has(G.i) && !twist, jes = G.mode === 'jester' && G.i === G.jester;
   const w = G.imps.has(G.i) && twist ? G.word2 : G.word;
   app.innerHTML = `<div class="center"><p class="dim">${esc(G.names[G.i])}, your card</p>
@@ -239,7 +239,7 @@ function reveal() {
   clearInterval(tick);
   const im = [...G.imps].map(i => esc(G.names[i]));
   app.innerHTML = `<div class="center"><p class="dim">${im.length > 1 ? 'The imposters were' : 'The imposter was'}</p><h1 class="imp">${im.join(', ')}</h1>${G.mode === 'jester' ? `<p class="dim">The Jester was</p><h1 class="jest">${esc(G.names[G.jester])}</h1><p class="dim">If the Jester got voted out, the Jester wins!</p>` : ''}
-  <p class="dim">${G.mode === 'question' ? 'The question was' : 'The word was'}</p><h1 ${G.mode === 'question' ? 'style="font-size:1.6rem"' : ''}>${esc(G.word)}</h1>${G.mode !== 'classic' ? `<p class="dim">The imposter's ${G.mode === 'question' ? 'question' : 'word'} was <b>${esc(G.word2)}</b></p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`}
+  <p class="dim">${G.mode === 'question' ? 'The question was' : 'The word was'}</p><h1 ${G.mode === 'question' ? 'style="font-size:1.6rem"' : ''}>${esc(G.word)}</h1>${G.mode === 'different' || G.mode === 'question' ? `<p class="dim">The imposter's ${G.mode === 'question' ? 'question' : 'word'} was <b>${esc(G.word2)}</b></p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`}
   <button class="big" onclick="setup()">New Game</button></div>`;
 }
 
@@ -256,12 +256,18 @@ function howto() {
   ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
   <h2>Jester mode</h2>
   <ul class="how">${[
-    'Most players see the real word.',
-    'The imposter gets a different word from the same category and does not know it.',
-    'The Jester also sees the real word, but is secretly trying to get voted out.',
-    'Give clues and watch who does not fit. Be careful: the Jester wants to look suspicious.',
+    'Played like Classic, with one extra role: the Jester.',
+    'The Jester sees the real word, but secretly wants to be voted out.',
+    'The imposter still gets only a hint and tries to blend in.',
     'If the group votes out the Jester, the Jester wins. Vote out the imposter to win as the crew.',
-    'The reveal shows the imposter, the Jester and both words.'
+    'The reveal shows both the imposter and the Jester.'
+  ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
+  <h2>Different Word mode</h2>
+  <ul class="how">${[
+    'Everyone sees a word, and every card looks the same.',
+    'The imposter gets a different word from the same category and thinks it is the real one.',
+    'Give clues and watch who does not quite fit.',
+    'Vote for the imposter. The reveal shows both words.'
   ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
   <h2>Question mode</h2>
   <ul class="how">${[
