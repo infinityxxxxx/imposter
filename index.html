@@ -83,6 +83,8 @@ const RAW = {
 };
 const WORDS = Object.fromEntries(Object.entries(RAW).map(([k, v]) => [k, v.split(',').map(p => p.split(':').map(s => s.trim()))]));
 const CATS = Object.keys(WORDS);
+// Question mode: [crew question, imposter question], same category, similar but different.
+const QS = {"Cars": [["Which car looks the dumbest?","Which car looks the coolest?"],["What car would you never be caught driving?","What car would you drive across the country?"],["Which car brand has the best logo?","Which car brand has the worst logo?"],["What is the ugliest car color?","What is the best car color?"],["Which car is the loudest?","Which car is the fastest?"]],"Colors": [["What is the dumbest-looking color?","What is the prettiest color?"],["What color do you hate wearing?","What color do you wear the most?"],["Which color is the loudest?","Which color is the calmest?"],["What color would you paint a house you hate?","What color would you paint your bedroom?"],["What is the worst color for a phone case?","What is the best color for a phone case?"]],"Food": [["What is the most overrated food?","What is the most underrated food?"],["Which food smells the worst?","Which food smells the best?"],["What food would you never eat again?","What food could you eat every day?"],["What is the weirdest pizza topping?","What is the best pizza topping?"],["Which snack is the messiest to eat?","Which snack is the hardest to stop eating?"]],"Animals": [["Which animal looks the silliest?","Which animal looks the scariest?"],["What animal would be the worst pet?","What animal would be the best pet?"],["Which animal would lose a race?","Which animal would win a race?"],["What animal makes the funniest sound?","What animal makes the creepiest sound?"],["Which animal is the laziest?","Which animal is the smartest?"]],"Places": [["What is the most boring place to visit?","What is the most fun place to visit?"],["Where would you never want to live?","Where would you most want to live?"],["Which country has the best food?","Which country has the best beaches?"],["Which city is the most overrated?","Which city is the most underrated?"],["What is the worst place to be stuck overnight?","What is the best place to be stuck overnight?"]],"Everyday Life": [["What is the worst school subject?","What is the easiest school subject?"],["What is the most annoying sound?","What is the most relaxing sound?"],["What is the worst chore?","What is the most satisfying chore?"],["What is the most useless thing in your bag?","What is the most useful thing in your bag?"],["What is the dumbest thing to be afraid of?","What is the scariest thing you have seen?"]],"Movies & Music": [["What is the most overrated movie?","What is the best movie you have seen?"],["Which cartoon character is the most annoying?","Which cartoon character would you be?"],["What is the worst movie to watch with family?","What is the best movie to watch with friends?"],["Which superhero has the dumbest power?","Which superhero has the best power?"],["What is the worst song to hear on repeat?","What is the best song for a road trip?"]],"Brands & Tech": [["What is the dumbest-looking logo?","What is the best-looking logo?"],["Which app do you waste the most time on?","Which app could you never delete?"],["What is the most annoying phone notification?","What is the most useful phone feature?"],["Which brand is the most overpriced?","Which brand is the best value?"],["What is the worst video game ever?","What is the best video game ever?"]],"Clothing": [["What is the dumbest-looking piece of clothing?","What is the comfiest piece of clothing?"],["What is the worst hairstyle?","What is the best hairstyle?"],["Which shoes look the silliest?","Which shoes look the best?"],["What is the most uncomfortable thing to wear?","What is the one thing you wear every day?"],["Which hat looks the dumbest?","Which hat looks the coolest?"]]};
 const DEF = { names: ['Player 1', 'Player 2', 'Player 3', 'Player 4'], imps: 1, cats: CATS, time: 0, sound: true, vibe: true, vol: .6, theme: 'midnight', mode: 'classic' };
 
 const $ = s => document.querySelector(s), app = $('#app');
@@ -159,13 +161,13 @@ function setup() {
   ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
   <button class="ghost" style="width:100%" onclick="add()" ${n >= 12 ? 'disabled' : ''}>+ Add player</button>
   <h2>Mode</h2>
-  <select onchange="S.mode=this.value">${[['classic', 'Classic (imposter gets a hint)'], ['jester', 'Jester (imposter has a different word)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+  <select onchange="S.mode=this.value;setup()">${[['classic', 'Classic (imposter gets a hint)'], ['jester', 'Jester (imposter has a different word)'], ['question', 'Question (everyone answers a question)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
   <h2>Imposters: <b id="ic">${S.imps}</b></h2>
   <input type="range" min="1" max="${max}" value="${S.imps}" oninput="S.imps=+this.value;$('#ic').textContent=this.value">
   <h2>Timer</h2>
   <select onchange="S.time=+this.value">${[[0, 'Off'], [60, '1 min'], [120, '2 min'], [180, '3 min'], [300, '5 min']].map(([v, l]) => `<option value="${v}" ${S.time === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
-  <h2>Categories</h2>
-  <div class="cats">${CATS.map((c, i) => `<label><input type="checkbox" ${S.cats.includes(c) ? 'checked' : ''} onchange="tog(${i},this.checked)">${esc(c)}</label>`).join('')}</div>
+  ${S.mode === 'question' ? `<h2>Categories</h2><p class="dim">Question mode mixes its own categories: cars, colors, food, animals, places and more.</p>` : `  <h2>Categories</h2>
+  <div class="cats">${CATS.map((c, i) => `<label><input type="checkbox" ${S.cats.includes(c) ? 'checked' : ''} onchange="tog(${i},this.checked)">${esc(c)}</label>`).join('')}</div>`}
   <button class="big" onclick="start()">Start Game</button>
   <button class="link" onclick="howto()">How to Play</button>`;
 }
@@ -174,18 +176,22 @@ function rm(i) { S.names.splice(i, 1); setup(); }
 function tog(i, on) { const c = CATS[i]; S.cats = on ? [...S.cats, c] : S.cats.filter(x => x !== c); }
 
 function start() {
+  const names = S.names.map((x, i) => x.trim() || `Player ${i + 1}`), qm = S.mode === 'question';
   const cats = S.cats.filter(c => WORDS[c]);
-  if (!cats.length) return alert('Pick at least one category.');
+  if (!qm && !cats.length) return alert('Pick at least one category.');
   save(); ensureAudio();
-  const names = S.names.map((x, i) => x.trim() || `Player ${i + 1}`);
-  const cat = cats[rand(cats.length)], pool = WORDS[cat];
-  G = deal(names, S.imps, pool); G.mode = S.mode;
-  // jester mode: imposter gets a different word from the same category and is never told
-  if (S.mode === 'jester') G.word2 = pool.filter(w => w[0] !== G.word)[rand(pool.length - 1)][0];
+  if (qm) { // question mode: "word" is the crew's question, word2 the imposter's, same category
+    const cat = Object.keys(QS)[rand(Object.keys(QS).length)];
+    G = deal(names, S.imps, QS[cat]); G.word2 = G.hint;
+  } else {
+    const pool = WORDS[cats[rand(cats.length)]];
+    G = deal(names, S.imps, pool);
+    // jester mode: imposter gets a different word from the same category and is never told
+    if (S.mode === 'jester') G.word2 = pool.filter(w => w[0] !== G.word)[rand(pool.length - 1)][0];
+  }
+  G.mode = S.mode;
   pass();
 }
-
-// Strictly pass -> card -> pass -> card. The word only exists in the DOM during one person's card screen.
 function pass() {
   if (G.i >= G.names.length) return started();
   const n = esc(G.names[G.i]);
@@ -193,10 +199,11 @@ function pass() {
 }
 function show() {
   ensureAudio(); sfx.reveal(); buzz(200);
-  const g = G.mode === 'jester', imp = G.imps.has(G.i) && !g; // in jester mode the imposter's card must look like everyone else's
-  const w = G.imps.has(G.i) && g ? G.word2 : G.word;
+  const twist = G.mode !== 'classic', q = G.mode === 'question'; // in jester/question mode the imposter's card must look like everyone else's
+  const imp = G.imps.has(G.i) && !twist;
+  const w = G.imps.has(G.i) && twist ? G.word2 : G.word;
   app.innerHTML = `<div class="center"><p class="dim">${esc(G.names[G.i])}, your card</p>
-  <div class="card ${imp ? 'imp' : ''}">${imp ? `<h1>IMPOSTER</h1><p>Your hint: <b>${esc(G.hint)}</b></p>` : `<p class="dim">The word is</p><h1>${esc(w)}</h1>`}</div>
+  <div class="card ${imp ? 'imp' : ''}">${imp ? `<h1>IMPOSTER</h1><p>Your hint: <b>${esc(G.hint)}</b></p>` : `<p class="dim">${q ? 'Your question is' : 'The word is'}</p><h1 ${q ? 'style="font-size:1.7rem"' : ''}>${esc(w)}</h1>`}</div>
   <button class="big" id="hb" disabled onclick="hide()">Hide and pass</button></div>`;
   setTimeout(() => { const b = $('#hb'); if (b) b.disabled = false; }, 1200); // a double-tap can't skip the card unseen
 }
@@ -205,7 +212,7 @@ function hide() { G.i++; if (G.i < G.names.length) sfx.hide(); pass(); }
 function started() {
   sfx.start();
   const end = S.time ? Date.now() + S.time * 1000 : 0;
-  app.innerHTML = `<div class="center"><h1>Game started</h1><p>Time to talk and catch the imposter. <b>${esc(G.names[G.starter])}</b> starts the conversation!</p>
+  app.innerHTML = `<div class="center"><h1>Game started</h1><p>${G.mode === 'question' ? 'Everyone answers their question out loud, then talk and catch the imposter. ' : 'Time to talk and catch the imposter. '}<b>${esc(G.names[G.starter])}</b> starts the conversation!</p>
   ${end ? '<div id="t" class="timer"></div>' : ''}
   <button class="big" onclick="reveal()">Reveal Imposter and Word</button>
   <button class="link" onclick="setup()">New Game</button></div>`;
@@ -225,7 +232,7 @@ function reveal() {
   clearInterval(tick);
   const im = [...G.imps].map(i => esc(G.names[i]));
   app.innerHTML = `<div class="center"><p class="dim">${im.length > 1 ? 'The imposters were' : 'The imposter was'}</p><h1 class="imp">${im.join(', ')}</h1>
-  <p class="dim">The word was</p><h1>${esc(G.word)}</h1>${G.mode === 'jester' ? `<p class="dim">The imposter's word was <b>${esc(G.word2)}</b></p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`}
+  <p class="dim">${G.mode === 'question' ? 'The question was' : 'The word was'}</p><h1 ${G.mode === 'question' ? 'style="font-size:1.6rem"' : ''}>${esc(G.word)}</h1>${G.mode !== 'classic' ? `<p class="dim">The imposter's ${G.mode === 'question' ? 'question' : 'word'} was <b>${esc(G.word2)}</b></p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`}
   <button class="big" onclick="setup()">New Game</button></div>`;
 }
 
@@ -246,6 +253,14 @@ function howto() {
     'The imposter gets a different word from the same category, and does not know it.',
     'Give clues and watch who does not quite fit.',
     'Vote for the imposter. The reveal shows both words.'
+  ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
+  <h2>Question mode</h2>
+  <ul class="how">${[
+    'Everyone gets a question instead of a word, for example "Which car looks the dumbest?"',
+    'The imposter gets a different question from the same category, and does not know it.',
+    'Take turns answering your question out loud.',
+    'The imposter answers a slightly different question, so their answer feels a little off.',
+    'Talk, vote for the imposter, then reveal both questions.'
   ].map((x, i) => `<li style="--i:${i}">${x}</li>`).join('')}</ul>
   <button class="big" onclick="setup()">Back</button>`;
 }
