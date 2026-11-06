@@ -358,7 +358,7 @@ function settings() {
 
 // block the browser Back button so nobody can navigate to a previous card
 history.pushState(null, ''); onpopstate = () => history.pushState(null, '');
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => { });
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) { const had = navigator.serviceWorker.controller; navigator.serviceWorker.register('sw.js').catch(() => { }); navigator.serviceWorker.addEventListener('controllerchange', () => { if (had) location.reload(); }); } // one-time reload when a new version takes over
 setup();
 </script>
 </body>
