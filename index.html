@@ -161,8 +161,9 @@ function setup() {
   app.innerHTML = `
   <header><h1>Imposter</h1><button class="ghost" onclick="settings()" aria-label="Settings">⚙</button></header>
   <h2>Players (${n})</h2>
-  ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
+  ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="mv(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button><button class="ghost" onclick="mv(${i},1)" ${i === n - 1 ? 'disabled' : ''} aria-label="Move down">▼</button><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
   <button class="ghost" style="width:100%" onclick="add()" ${n >= 12 ? 'disabled' : ''}>+ Add player</button>
+  <div class="row"><button class="ghost" style="flex:1" onclick="bulk()">🎤 Say / paste names</button><button class="ghost" style="flex:1" onclick="S.names=shuffle(S.names);setup()">🔀 Shuffle order</button></div>
   <h2>Mode</h2>
   <select onchange="S.mode=this.value;setup()">${[['classic', 'Classic (imposter gets a hint)'], ['jester', 'Jester (classic + a Jester who wants to be voted out)'], ['different', 'Different Word (imposter has a different word)'], ['white', 'Mr. White (imposter gets no word or hint)'], ['question', 'Question (everyone answers a question)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
   <button class="ghost" style="width:100%" onclick="randomize()">🎲 Randomize everything</button>
@@ -183,6 +184,33 @@ function randomize() { // mode, imposters (1..half the players), timer, categori
   S.time = TIMES[rand(TIMES.length)];
   S.cats = shuffle(CATS).slice(0, 3 + rand(CATS.length - 2));
   setup();
+}
+function mv(i, d) { const a = S.names, j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setup(); }
+// fast name entry: dictate (or use the keyboard mic / paste); pieces split on commas, "and", new lines
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec;
+function bulk(txt = S.names.join('\n')) {
+  app.innerHTML = `<header><h1>Player names</h1></header>
+  <p class="dim">One name per line, or separate with commas. ${SR ? 'Tap the mic and say the names, pausing between each or saying "and".' : 'Use your keyboard mic to dictate.'} Order here is the pass order.</p>
+  ${SR ? '<button class="ghost" id="mic" style="width:100%" onclick="dictate()">🎤 Start dictating</button>' : ''}
+  <textarea id="bl" rows="8">${esc(txt)}</textarea>
+  <button class="big" onclick="useNames()">Use these names</button>
+  <button class="link" onclick="stopRec();setup()">Cancel</button>`;
+}
+function dictate() {
+  if (rec) return stopRec();
+  rec = new SR(); rec.continuous = true; rec.interimResults = false; rec.lang = navigator.language || 'en-US';
+  rec.onresult = e => { const t = [...e.results].slice(e.resultIndex).map(r => r[0].transcript.trim()).join('\n'); $('#bl').value = ($('#bl').value.trim() ? $('#bl').value.trim() + '\n' : '') + t; };
+  rec.onend = () => { rec = null; const m = $('#mic'); if (m) m.textContent = '🎤 Start dictating'; };
+  rec.onerror = () => { };
+  rec.start(); $('#mic').textContent = '⏹ Listening... tap to stop';
+}
+function stopRec() { try { rec && rec.stop(); } catch { } rec = null; }
+function parseNames(t) { return t.split(/[,\n]| and /i).map(x => x.trim().replace(/^and /i, '')).filter(Boolean).map(x => x.slice(0, 14)).slice(0, 12); }
+function useNames() {
+  stopRec(); const a = parseNames($('#bl').value);
+  if (a.length < 3) return alert('Need at least 3 names.');
+  S.names = a; save(); setup();
 }
 function add() { S.names.push(`Player ${S.names.length + 1}`); setup(); }
 function rm(i) { S.names.splice(i, 1); setup(); }
