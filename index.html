@@ -52,6 +52,12 @@ ul.how{list-style:none;padding:0;margin:12px 0 0}
 ul.how li{background:var(--panel);border-radius:14px;padding:14px 14px 14px 44px;margin-bottom:10px;position:relative;animation:up .5s ease both;animation-delay:calc(var(--i)*80ms)}
 ul.how li::before{content:"";position:absolute;left:16px;top:21px;width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
 /* effects */
+.prow{position:relative;transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.prow.lift{transition:none;z-index:5;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+.prow.new{animation:pop .4s cubic-bezier(.2,.8,.2,1)}
+.grip{touch-action:none;cursor:grab;padding:12px 10px;color:var(--dim);font-size:1.2rem;line-height:1}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent);transition:box-shadow .2s}
+.cats label{transition:transform .12s,background .2s}.cats label:active{transform:scale(.97)}
 @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes flip{from{opacity:0;transform:perspective(600px) rotateY(-70deg) scale(.9)}to{opacity:1;transform:none}}
 @keyframes pop{0%{opacity:0;transform:scale(.4)}70%{transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
@@ -161,7 +167,7 @@ function setup() {
   app.innerHTML = `
   <header><h1>Imposter</h1><button class="ghost" onclick="settings()" aria-label="Settings">⚙</button></header>
   <h2>Players (${n})</h2>
-  ${S.names.map((x, i) => `<div class="row"><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="mv(${i},-1)" ${i === 0 ? 'disabled' : ''} aria-label="Move up">▲</button><button class="ghost" onclick="mv(${i},1)" ${i === n - 1 ? 'disabled' : ''} aria-label="Move down">▼</button><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
+  ${S.names.map((x, i) => `<div class="row prow ${i === n - 1 && G.added ? 'new' : ''}"><button class="ghost grip" onpointerdown="drag(event,${i})" aria-label="Drag to reorder">⠿</button><input value="${esc(x)}" maxlength="14" placeholder="Player ${i + 1}" oninput="S.names[${i}]=this.value"><button class="ghost" onclick="rm(${i})" ${n <= 3 ? 'disabled' : ''} aria-label="Remove player">✕</button></div>`).join('')}
   <button class="ghost" style="width:100%" onclick="add()" ${n >= 12 ? 'disabled' : ''}>+ Add player</button>
   <div class="row"><button class="ghost" style="flex:1" onclick="bulk()">🎤 Say / paste names</button><button class="ghost" style="flex:1" onclick="S.names=shuffle(S.names);setup()">🔀 Shuffle order</button></div>
   <h2>Mode</h2>
@@ -185,7 +191,23 @@ function randomize() { // mode, imposters (1..half the players), timer, categori
   S.cats = shuffle(CATS).slice(0, 3 + rand(CATS.length - 2));
   setup();
 }
-function mv(i, d) { const a = S.names, j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setup(); }
+function drag(e, i) { // hold the grip and slide; others glide out of the way, release to drop
+  e.preventDefault(); const h = e.currentTarget, rows = [...document.querySelectorAll('.prow')], me = rows[i], n = rows.length;
+  const step = n > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : 0, y0 = e.clientY;
+  let to = i; h.setPointerCapture(e.pointerId); me.classList.add('lift'); buzz(10); sfx.tap();
+  const mv = ev => {
+    const dy = Math.max(-i * step, Math.min((n - 1 - i) * step, ev.clientY - y0)), t = Math.round(i + dy / step);
+    me.style.transform = `translateY(${dy}px) scale(1.03)`;
+    rows.forEach((r, k) => { if (k !== i) r.style.transform = `translateY(${i < t && k > i && k <= t ? -step : i > t && k < i && k >= t ? step : 0}px)`; });
+    if (t !== to) { to = t; buzz(8); }
+  };
+  const up = () => {
+    h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+    me.classList.remove('lift'); me.style.transition = 'transform .2s cubic-bezier(.2,.8,.2,1)'; me.style.transform = `translateY(${(to - i) * step}px)`;
+    setTimeout(() => { const [x] = S.names.splice(i, 1); S.names.splice(to, 0, x); setup(); }, 210);
+  };
+  h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+}
 // fast name entry: dictate (or use the keyboard mic / paste); pieces split on commas, "and", new lines
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec;
@@ -200,19 +222,19 @@ function bulk(txt = S.names.join('\n')) {
 function dictate() {
   if (rec) return stopRec();
   rec = new SR(); rec.continuous = true; rec.interimResults = false; rec.lang = navigator.language || 'en-US';
-  rec.onresult = e => { const t = [...e.results].slice(e.resultIndex).map(r => r[0].transcript.trim()).join('\n'); $('#bl').value = ($('#bl').value.trim() ? $('#bl').value.trim() + '\n' : '') + t; };
+  rec.onresult = e => { const t = [...e.results].slice(e.resultIndex).map(r => r[0].transcript).join(' ').split(/\s*,\s*|\s+(?:and\s+)?/i).filter(w => w && !/^and$/i.test(w)).join('\n');; /* each spoken word is a name; fix two-word names by hand */ $('#bl').value = ($('#bl').value.trim() ? $('#bl').value.trim() + '\n' : '') + t; };
   rec.onend = () => { rec = null; const m = $('#mic'); if (m) m.textContent = '🎤 Start dictating'; };
   rec.onerror = () => { };
   rec.start(); $('#mic').textContent = '⏹ Listening... tap to stop';
 }
 function stopRec() { try { rec && rec.stop(); } catch { } rec = null; }
-function parseNames(t) { return t.split(/[,\n]| and /i).map(x => x.trim().replace(/^and /i, '')).filter(Boolean).map(x => x.slice(0, 14)).slice(0, 12); }
+function parseNames(t) { if (!/[,\n]/.test(t)) t = t.replace(/\s+(and\s+)?/gi, ','); return t.split(/[,\n]| and /i).map(x => x.trim().replace(/^and /i, '')).filter(Boolean).map(x => x.slice(0, 14)).slice(0, 12); }
 function useNames() {
   stopRec(); const a = parseNames($('#bl').value);
   if (a.length < 3) return alert('Need at least 3 names.');
   S.names = a; save(); setup();
 }
-function add() { S.names.push(`Player ${S.names.length + 1}`); setup(); }
+function add() { S.names.push(`Player ${S.names.length + 1}`); G.added = 1; setup(); G.added = 0; }
 function rm(i) { S.names.splice(i, 1); setup(); }
 function tog(i, on) { const c = CATS[i]; S.cats = on ? [...S.cats, c] : S.cats.filter(x => x !== c); }
 
