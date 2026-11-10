@@ -176,7 +176,7 @@ function setup() {
   <h2>Mode</h2>
   <select onchange="S.mode=this.value;setup()">${[['classic', 'Classic (imposter gets a hint)'], ['jester', 'Jester (classic + a Jester who wants to be voted out)'], ['different', 'Different Word (imposter has a different word)'], ['white', 'Mr. White (imposter gets no word or hint)'], ['question', 'Question (everyone answers a question)'], ['super', 'Super Chaos (random hidden roles and counts)']].map(([v, l]) => `<option value="${v}" ${S.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
   <button class="ghost" style="width:100%;margin-top:16px" onclick="randomize()">🎲 Randomize everything</button>
-  ${S.mode === 'super' ? `<p class="dim">Super Chaos picks everything at random each round: anywhere from zero imposters up to half the players, plus any number of Jesters, Double Agents and Mr. Whites. Nobody knows the mix until the reveal.</p>` : `<h2>Imposters: <b id="ic">${S.imps}</b></h2>
+  ${S.mode === 'super' ? `<p class="dim">Super Chaos picks everything at random each round: usually one imposter up to half the players (about 1 round in 10 has none), plus any number of Jesters, Double Agents and Mr. Whites. Nobody knows the mix until the reveal.</p>` : `<h2>Imposters: <b id="ic">${S.imps}</b></h2>
   <input type="range" min="1" max="${max}" value="${S.imps}" oninput="S.imps=+this.value;$('#ic').textContent=this.value">
   <h2>Chaos: everyone is the imposter</h2>
   <select onchange="S.chaos=+this.value">${[[0, 'Off'], [.1, '10% chance each round'], [.25, '25% chance each round']].map(([v, l]) => `<option value="${v}" ${S.chaos === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
@@ -270,7 +270,7 @@ function start() {
   if (superMode) { // everything random and hidden: 0..half imposters, 0-2 of each extra role, always 1+ plain crew
     const seats = shuffle(names.map((_, i) => i));
     const take = k => seats.splice(0, Math.min(k, seats.length - 1));
-    G.imps = new Set(take(rand(Math.floor(names.length / 2) + 1)));
+    G.imps = new Set(take(Math.random() < .1 ? 0 : 1 + rand(Math.floor(names.length / 2)))); // ~10% of rounds have no imposter
     G.jesters = new Set(take(rand(3))); G.agents = new Set(take(rand(3))); G.whites = new Set(take(rand(3)));
     G.jester = -1; G.agent = -1;
   }
@@ -372,7 +372,7 @@ function howto() {
   <h2>Super Chaos mode</h2>
   <ul class="how">${[
     'Everything is random each round, and nobody knows the mix until the end.',
-    'There can be zero imposters, one, or up to half the players.',
+    'Usually one imposter up to half the players, but about 1 round in 10 has no imposter at all.',
     'There can also be any number of Jesters, Double Agents and Mr. Whites, or none at all.',
     'The round also secretly plays as Classic, Jester, Different Word, Mr. White or Question rules.',
     'Your card shows only your own role. A Double Agent knows who the imposters are, or that there are none.',
