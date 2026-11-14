@@ -258,7 +258,7 @@ function tog(i, on) { const c = CATS[i]; S.cats = on ? [...S.cats, c] : S.cats.f
 
 function start() {
   const names = S.names.map((x, i) => x.trim() || `Player ${i + 1}`), superMode = S.mode === 'super', mode = superMode ? ['classic', 'jester', 'different', 'white', 'question'][rand(5)] : S.mode, qm = mode === 'question';
-  const pools = S.cats.filter(c => WORDS[c]).map(c => WORDS[c]);
+  const pools = S.cats.filter(c => WORDS[c]);
   if (!qm && !pools.length) return alert('Pick at least one category.');
   save(); ensureAudio();
   let src; // pool of prompts for the "everyone is an imposter" twist in different-word / question modes
@@ -267,8 +267,9 @@ function start() {
     G = deal(names, S.imps, QS[cat]); G.word2 = G.hint;
     src = shuffle(QS[cat]).map(p => p[rand(2)]);
   } else {
-    const pool = pools[rand(pools.length)];
+    const cat = pools[rand(pools.length)], pool = WORDS[cat];
     G = deal(names, S.imps, pool);
+    G.hint = cat; // Mudit (2026-11-13): the imposter's hint is the word's category
     // different-word mode: imposter gets another word from the same category and is never told
     src = shuffle(pool).map(w => w[0]);
     if (mode === 'different') G.word2 = pool.filter(w => w[0] !== G.word)[rand(pool.length - 1)][0];
