@@ -287,6 +287,7 @@ function start() {
     G.jesters = new Set(take(rand(3))); G.agents = new Set(take(rand(3))); G.whites = new Set(take(rand(3)));
     G.agent = -1;
   }
+  if (!superMode && Math.random() < .1) G.imps = new Set(); // 10% of rounds: no imposter, everyone is crew
   if (Math.random() < S.jesterChance && !superMode) { // optional Jester setting: can stack with Jester mode for two Jesters
     const open = names.map((_, i) => i).filter(i => !G.imps.has(i) && !G.jesters.has(i));
     if (open.length > 1) G.jesters.add(open[rand(open.length)]); // keep at least one plain crew member
@@ -294,7 +295,7 @@ function start() {
   if (Math.random() < S.agentChance && !superMode) { // optional secret helper setting
     const crew = names.map((_, i) => i).filter(i => !G.imps.has(i) && !G.jesters.has(i)); G.agent = crew[rand(crew.length)];
   }
-  G.all = !superMode && Math.random() < S.chaos; // twist: this round EVERYONE is the imposter
+  G.all = !superMode && G.imps.size > 0 && Math.random() < S.chaos; // twist: this round EVERYONE is the imposter
   if (G.all && (qm || S.mode === 'different')) G.prompts = names.map((_, i) => src[i % src.length]); // everyone gets their own different prompt
   pass();
 }
@@ -341,8 +342,8 @@ function reveal() {
   clearInterval(tick);
   const im = [...G.imps].map(i => esc(G.names[i]));
   const roles = G.names.map((n, i) => `${esc(n)}: ${isWhite(i) ? 'Mr. White' : G.imps.has(i) ? 'Imposter' : isJester(i) ? 'Jester' : isAgent(i) ? 'Double Agent' : 'Crew'}`);
-  app.innerHTML = `<div class="center">${G.super ? `<h1>Super Chaos roles</h1>${G.imps.size ? '' : '<h1 class="imp">No imposters this round!</h1>'}<p>${roles.join('<br>')}</p>` : G.all ? `<h1 class="imp">Everyone was the imposter!</h1>${G.prompts ? `<p class="dim">Everyone had a different ${G.mode === 'question' ? 'question' : 'word'}:</p><p>${G.names.map((n, i) => `<b>${esc(n)}</b>: ${esc(G.prompts[i])}`).join('<br>')}</p>` : ''}` : `<p class="dim">${im.length > 1 ? 'The imposters were' : 'The imposter was'}</p><h1 class="imp">${im.join(', ')}</h1>`}${(G.mode === 'agent' || G.agent >= 0) && !G.all && !G.super ? `<p class="dim">The Double Agent was</p><h1 class="agent">${esc(G.names[G.agent])}</h1>` : ''}${G.jesters.size && !G.all && !G.super ? `<p class="dim">${G.jesters.size > 1 ? 'The Jesters were' : 'The Jester was'}</p><h1 class="jest">${[...G.jesters].map(i => esc(G.names[i])).join(', ')}</h1><p class="dim">If ${G.jesters.size > 1 ? 'a Jester gets' : 'the Jester got'} voted out, ${G.jesters.size > 1 ? 'that Jester wins' : 'the Jester wins'}!</p>` : ''}
-  ${G.prompts ? '' : `<p class="dim">${G.mode === 'question' ? 'The question was' : 'The word was'}</p><h1 ${G.mode === 'question' ? 'style="font-size:1.6rem"' : ''}>${esc(G.word)}</h1>`}${G.prompts || G.super && !G.imps.size ? '' : G.mode === 'different' || G.mode === 'question' ? `<p class="dim">The imposter's ${G.mode === 'question' ? 'question' : 'word'} was <b>${esc(G.word2)}</b></p>` : (G.mode === 'white' && !G.all ? `<p class="dim">If Mr. White was caught, they get one guess at the word.</p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`)}
+  app.innerHTML = `<div class="center">${G.super ? `<h1>Super Chaos roles</h1>${G.imps.size ? '' : '<h1 class="imp">No imposters this round!</h1>'}<p>${roles.join('<br>')}</p>` : !G.imps.size ? '<h1 class="imp">No imposters this round!</h1><p class="dim">Everyone was a crewmate.</p>' : G.all ? `<h1 class="imp">Everyone was the imposter!</h1>${G.prompts ? `<p class="dim">Everyone had a different ${G.mode === 'question' ? 'question' : 'word'}:</p><p>${G.names.map((n, i) => `<b>${esc(n)}</b>: ${esc(G.prompts[i])}`).join('<br>')}</p>` : ''}` : `<p class="dim">${im.length > 1 ? 'The imposters were' : 'The imposter was'}</p><h1 class="imp">${im.join(', ')}</h1>`}${(G.mode === 'agent' || G.agent >= 0) && !G.all && !G.super ? `<p class="dim">The Double Agent was</p><h1 class="agent">${esc(G.names[G.agent])}</h1>` : ''}${G.jesters.size && !G.all && !G.super ? `<p class="dim">${G.jesters.size > 1 ? 'The Jesters were' : 'The Jester was'}</p><h1 class="jest">${[...G.jesters].map(i => esc(G.names[i])).join(', ')}</h1><p class="dim">If ${G.jesters.size > 1 ? 'a Jester gets' : 'the Jester got'} voted out, ${G.jesters.size > 1 ? 'that Jester wins' : 'the Jester wins'}!</p>` : ''}
+  ${G.prompts ? '' : `<p class="dim">${G.mode === 'question' ? 'The question was' : 'The word was'}</p><h1 ${G.mode === 'question' ? 'style="font-size:1.6rem"' : ''}>${esc(G.word)}</h1>`}${G.prompts || !G.imps.size ? '' : G.mode === 'different' || G.mode === 'question' ? `<p class="dim">The imposter's ${G.mode === 'question' ? 'question' : 'word'} was <b>${esc(G.word2)}</b></p>` : (G.mode === 'white' && !G.all ? `<p class="dim">If Mr. White was caught, they get one guess at the word.</p>` : `<p class="dim">Imposter hint: ${esc(G.hint)}</p>`)}
   <button class="big" onclick="setup()">New Game</button></div>`;
 }
 
